@@ -32,8 +32,10 @@ export const Login = () => {
     setLoading(true);
     setError('');
     try {
-      await switchDemoAccount(demoEmail);
-      navigate('/dashboard');
+      const user = await switchDemoAccount(demoEmail);
+      if (user?.role === 'organizer') navigate('/organizer');
+      else if (user?.role === 'ambassador' || user?.role === 'coordinator') navigate('/staff');
+      else navigate('/dashboard');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -120,7 +122,7 @@ export const Login = () => {
         <div className="text-center text-xs text-gray-500 pt-2">
           Don't have an account?{' '}
           <Link to="/register" className="font-bold text-indigo-600 hover:underline">
-            Register Student Account
+            Create an Account (Student / Staff / Organizer)
           </Link>
         </div>
       </div>

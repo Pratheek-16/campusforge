@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
   const switchDemoAccount = async (email) => {
     setLoading(true);
     try {
-      await login(email, 'Demo@123');
+      return await login(email, 'Demo@123');
     } catch (err) {
       alert(`Demo login failed: ${err.message}`);
     } finally {
