@@ -66,6 +66,7 @@ export const api = {
     const query = new URLSearchParams();
     if (params.q) query.append('q', params.q);
     if (params.category) query.append('category', params.category);
+    if (params.college) query.append('college', params.college);
     if (params.skill) query.append('skill', params.skill);
     if (params.status_filter) query.append('status_filter', params.status_filter);
     const queryString = query.toString() ? `?${query.toString()}` : '';
@@ -74,6 +75,7 @@ export const api = {
   getOpportunity: (id) => request(`/opportunities/${id}`),
   createOpportunity: (data) => request('/opportunities', { method: 'POST', body: JSON.stringify(data) }),
   updateOpportunity: (id, data) => request(`/opportunities/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteOpportunity: (id) => request(`/opportunities/${id}`, { method: 'DELETE' }),
   saveOpportunity: (id) => request(`/opportunities/${id}/save`, { method: 'POST' }),
   unsaveOpportunity: (id) => request(`/opportunities/${id}/save`, { method: 'DELETE' }),
   getSavedOpportunities: () => request('/saved'),

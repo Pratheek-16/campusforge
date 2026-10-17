@@ -33,6 +33,7 @@ export const OpportunitiesDirectory = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCollege, setSelectedCollege] = useState('all');
   const [statusFilter, setStatusFilter] = useState('active'); // active, expired, all
   const [skillFilter, setSkillFilter] = useState('');
 
@@ -42,6 +43,7 @@ export const OpportunitiesDirectory = () => {
       const data = await api.getOpportunities({
         q: searchQuery,
         category: selectedCategory === 'all' ? undefined : selectedCategory,
+        college: selectedCollege === 'all' ? undefined : selectedCollege,
         status_filter: statusFilter,
         skill: skillFilter || undefined,
       });
@@ -55,7 +57,7 @@ export const OpportunitiesDirectory = () => {
 
   useEffect(() => {
     fetchOpportunities();
-  }, [selectedCategory, statusFilter]);
+  }, [selectedCategory, selectedCollege, statusFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -85,9 +87,14 @@ export const OpportunitiesDirectory = () => {
     }
   };
 
+  const uniqueColleges = Array.from(
+    new Set(opportunities.map((o) => o.college).filter(Boolean))
+  );
+
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
+    setSelectedCollege('all');
     setStatusFilter('active');
     setSkillFilter('');
   };
@@ -100,7 +107,7 @@ export const OpportunitiesDirectory = () => {
           Explore Student Opportunities
         </h1>
         <p className="text-gray-600 mt-1 max-w-2xl text-sm sm:text-base">
-          Discover verified internships, hackathons, scholarships, and academic projects with transparent, explainable skill matching.
+          Discover verified internships, hackathons, scholarships, and academic projects across all colleges with transparent, explainable skill matching.
         </p>
       </div>
 
@@ -119,6 +126,19 @@ export const OpportunitiesDirectory = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedCollege}
+              onChange={(e) => setSelectedCollege(e.target.value)}
+              className="px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">All Colleges / Inter-Campus</option>
+              {uniqueColleges.map((col) => (
+                <option key={col} value={col}>
+                  🏛️ {col}
+                </option>
+              ))}
+            </select>
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -208,11 +228,20 @@ export const OpportunitiesDirectory = () => {
                     </h3>
                   </Link>
 
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500 mt-1.5">
                     <Building className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     <span className="truncate">{opp.organizer_name}</span>
                     <span className="text-gray-300">•</span>
                     <span className="capitalize">{opp.category.replace('_', ' ')}</span>
+                    {opp.college && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                          <Building className="w-2.5 h-2.5 text-indigo-500" />
+                          {opp.college}
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   <p className="text-xs text-gray-600 mt-3 line-clamp-3 leading-relaxed">

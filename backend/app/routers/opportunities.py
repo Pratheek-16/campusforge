@@ -81,6 +81,7 @@ def format_opportunity_response(
 def list_opportunities(
     q: Optional[str] = Query(None, description="Search keyword in title or description"),
     category: Optional[str] = Query(None, description="Filter by category"),
+    college: Optional[str] = Query(None, description="Filter by college"),
     skill: Optional[str] = Query(None, description="Filter by required skill"),
     status_filter: Optional[str] = Query("all", description="active, expired, or all"),
     current_user: Optional[User] = Depends(get_optional_user),
@@ -100,6 +101,9 @@ def list_opportunities(
     
     if category and category.lower() != "all":
         query = query.where(Opportunity.category == category.lower())
+
+    if college and college.lower() != "all":
+        query = query.where(Opportunity.college.ilike(f"%{college.strip()}%"))
 
     results = session.exec(query.order_by(Opportunity.start_at.desc())).all()
     
@@ -149,7 +153,7 @@ def create_opportunity(
             detail="Organizers are permitted to publish only internship opportunities"
         )
     
-    college_scope = current_user.college if current_user.role == "ambassador" else data.college
+    college_scope = (data.college.strip() if data.college else current_user.college) if current_user.role == "ambassador" else data.college
     section_scope = current_user.section if current_user.role == "coordinator" else data.section
 
     # Date validation (PRD 4.2: reject invalid dates)
@@ -273,6 +277,28 @@ def update_opportunity(
     session.commit()
     session.refresh(opp)
     return format_opportunity_response(opp, current_user, session)
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_opportunity(
+    id: int,
+    current_user: User = Depends(require_role("organizer", "ambassador", "coordinator")),
+    session: Session = Depends(get_session)
+):
+    opp = session.get(Opportunity, id)
+    if not opp:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Opportunity not found")
+
+    # Ownership checks
+    if current_user.role == "organizer" and opp.posted_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete your own listings")
+    if current_user.role == "ambassador" and opp.college != current_user.college and opp.posted_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete opportunities for your college")
+    if current_user.role == "coordinator" and opp.section != current_user.section and opp.posted_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only delete opportunities for your section")
+
+    session.delete(opp)
+    session.commit()
+    return None
 
 @router.post("/{id}/save", status_code=status.HTTP_200_OK)
 def save_opportunity(

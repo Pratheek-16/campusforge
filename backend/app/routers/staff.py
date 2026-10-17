@@ -1,7 +1,7 @@
 import json
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select
+from sqlmodel import Session, select, or_
 
 from app.database import get_session
 from app.models import User, Opportunity
@@ -18,13 +18,25 @@ def get_staff_opportunities(
 ):
     query = select(Opportunity)
     if current_user.role == "ambassador":
-        if not current_user.college:
-            return []
-        query = query.where(Opportunity.college == current_user.college)
+        if current_user.college:
+            query = query.where(
+                or_(
+                    Opportunity.college == current_user.college,
+                    Opportunity.posted_by == current_user.id
+                )
+            )
+        else:
+            query = query.where(Opportunity.posted_by == current_user.id)
     elif current_user.role == "coordinator":
-        if not current_user.section:
-            return []
-        query = query.where(Opportunity.section == current_user.section)
+        if current_user.section:
+            query = query.where(
+                or_(
+                    Opportunity.section == current_user.section,
+                    Opportunity.posted_by == current_user.id
+                )
+            )
+        else:
+            query = query.where(Opportunity.posted_by == current_user.id)
 
     listings = session.exec(query.order_by(Opportunity.start_at.desc())).all()
     return [format_opportunity_response(opp, current_user, session) for opp in listings]

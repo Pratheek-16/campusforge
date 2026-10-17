@@ -134,4 +134,4 @@ def test_full_end_to_end_journey():
     )
     assert li_res.status_code == 200
     assert "draft" in li_res.json()
-    assert "ProjectNexus" in li_res.json()["draft"]
+    assert "CampusForge" in li_res.json()["draft"]
