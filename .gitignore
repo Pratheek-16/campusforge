@@ -1,0 +1,48 @@
+# Sensitive Environment & Secrets
+.env
+.env.*
+*.env
+!*.env.example
+
+# Local SQLite Databases
+*.db
+*.sqlite
+*.sqlite3
+campusforge.db
+nexus.db
+
+# User Uploads (Resumes, attachments) - Hide private documents
+backend/uploads/*
+uploads/*
+!backend/uploads/.gitkeep
+*.pdf
+*.docx
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.pytest_cache/
+
+# Node.js dependencies
+node_modules/
+frontend/node_modules/
+.npm
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local Portable Tools
+.tools/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
