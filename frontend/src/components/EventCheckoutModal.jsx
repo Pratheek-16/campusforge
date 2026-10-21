@@ -1,46 +1,64 @@
 import React, { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../api/client';
 import {
   X, QrCode, Zap, ExternalLink, CheckCircle2, Copy, AlertCircle,
   Smartphone, CreditCard, Globe, TicketIcon, Building, Calendar, MapPin
 } from 'lucide-react';
 
-// Mock UPI QR image (visual representation; in production use the host_upi_id to generate a real QR)
-const UPIQRPlaceholder = ({ upiId, amount }) => (
-  <div className="flex flex-col items-center p-4 bg-gray-50 border border-gray-200 rounded-xl">
-    <div className="w-40 h-40 bg-white border-4 border-gray-900 rounded-xl flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
-      {/* QR pattern simulation */}
-      <div className="grid grid-cols-7 gap-0.5 p-2 w-full h-full">
-        {Array.from({ length: 49 }).map((_, i) => (
-          <div
-            key={i}
-            className={`rounded-[1px] ${
-              [0,1,2,3,4,5,6,7,14,21,28,35,42,43,44,45,46,47,48,
-               8,12,20,24,32,36,9,10,11,13,15,16,17,18,19,22,23,
-               25,26,27,29,30,31,33,34,37,38,39,40,41].includes(i % 49)
-                ? 'bg-gray-900'
-                : 'bg-white'
-            }`}
-          />
+// Builds the UPI deep-link string that GPay / PhonePe / Paytm can scan
+const buildUpiString = (upiId, amount, eventTitle) => {
+  const note = encodeURIComponent(`Event: ${eventTitle}`.slice(0, 50));
+  const name = encodeURIComponent('CampusForge Events');
+  return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${name}&am=${amount}&cu=INR&tn=${note}`;
+};
+
+const UPIQRCode = ({ upiId, amount, eventTitle }) => {
+  const upiString = buildUpiString(upiId || 'campusforge@upi', amount, eventTitle || 'Event');
+
+  return (
+    <div className="flex flex-col items-center p-4 bg-gray-50 border border-gray-200 rounded-xl">
+      {/* Real QR Code */}
+      <div className="p-3 bg-white rounded-xl border-2 border-gray-200 shadow-sm">
+        <QRCodeSVG
+          value={upiString}
+          size={160}
+          bgColor="#ffffff"
+          fgColor="#1e1b4b"
+          level="M"
+          includeMargin={false}
+        />
+      </div>
+
+      <div className="mt-3 text-center space-y-1">
+        <div className="text-xs text-gray-500">Scan with any UPI app to pay</div>
+        <div className="text-sm font-bold text-gray-900">{upiId || 'campusforge@upi'}</div>
+        <div className="text-xl font-black text-indigo-700">₹{amount}</div>
+      </div>
+
+      {/* UPI App badges */}
+      <div className="flex items-center gap-2 mt-3">
+        {[
+          { name: 'GPay', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+          { name: 'PhonePe', cls: 'bg-purple-50 text-purple-700 border-purple-200' },
+          { name: 'Paytm', cls: 'bg-sky-50 text-sky-700 border-sky-200' },
+        ].map(app => (
+          <div key={app.name} className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${app.cls}`}>
+            {app.name}
+          </div>
         ))}
       </div>
+
+      {/* Tap-to-pay link for mobile */}
+      <a
+        href={upiString}
+        className="mt-3 text-[11px] text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+      >
+        Tap here to open UPI app (mobile)
+      </a>
     </div>
-    <div className="mt-2 text-center">
-      <div className="text-xs text-gray-500">Pay via any UPI app</div>
-      <div className="text-sm font-bold text-gray-900 mt-0.5">{upiId || 'campus.events@upi'}</div>
-      <div className="text-lg font-black text-indigo-700 mt-1">₹{amount}</div>
-    </div>
-    <div className="flex items-center gap-2 mt-3">
-      {['gpay','phonepe','paytm'].map(app => (
-        <div key={app} className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${
-          app === 'gpay' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-          app === 'phonepe' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-          'bg-sky-50 text-sky-700 border-sky-200'
-        }`}>{app.toUpperCase()}</div>
-      ))}
-    </div>
-  </div>
-);
+  );
+};
 
 // Digital Ticket display shown after successful registration
 const DigitalTicket = ({ registration, opp, onClose }) => {
@@ -316,7 +334,7 @@ export const EventCheckoutModal = ({ opp, currentUser, onClose, onSuccess }) => 
                 <p className="text-xs text-gray-500 mt-0.5">Scan QR or use any UPI app to pay ₹{opp.fee_amount}</p>
               </div>
 
-              <UPIQRPlaceholder upiId={opp.host_upi_id} amount={opp.fee_amount} />
+              <UPIQRCode upiId={opp.host_upi_id} amount={opp.fee_amount} eventTitle={opp.title} />
 
               {/* Pay mode tabs */}
               <div className="flex rounded-xl border border-gray-200 overflow-hidden text-xs font-semibold">
