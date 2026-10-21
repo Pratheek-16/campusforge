@@ -98,6 +98,10 @@ class OpportunityCreate(BaseModel):
     resources: List[str] = []
     college: Optional[str] = None
     section: Optional[str] = None
+    is_paid: bool = False
+    fee_amount: float = 0.0
+    host_upi_id: Optional[str] = None
+    registration_type: str = "both"  # native, external_link, both
 
 class OpportunityUpdate(BaseModel):
     title: Optional[str] = None
@@ -118,6 +122,10 @@ class OpportunityUpdate(BaseModel):
     registration_link: Optional[str] = None
     resources: Optional[List[str]] = None
     is_closed: Optional[bool] = None
+    is_paid: Optional[bool] = None
+    fee_amount: Optional[float] = None
+    host_upi_id: Optional[str] = None
+    registration_type: Optional[str] = None
 
 class OpportunityRead(BaseModel):
     id: int
@@ -142,11 +150,46 @@ class OpportunityRead(BaseModel):
     section: Optional[str] = None
     posted_by: int
     is_closed: bool
+    is_paid: bool = False
+    fee_amount: float = 0.0
+    host_upi_id: Optional[str] = None
+    registration_type: str = "both"
     created_at: datetime
     updated_at: datetime
     computed_status: str       # active, upcoming, ongoing, completed, registration_closed, expired, invalid_deadline
     is_saved: Optional[bool] = False
     application_status: Optional[str] = None
+    event_registration: Optional[Dict[str, Any]] = None
+
+# --- Event Registration Schemas ---
+class EventRegistrationCreate(BaseModel):
+    attendee_name: Optional[str] = None
+    attendee_email: Optional[str] = None
+    attendee_college: Optional[str] = None
+    attendee_phone: Optional[str] = None
+    payment_method: str = "free"  # free, upi_utr, demo_instant, google_form
+    payment_reference: Optional[str] = None
+    amount_paid: float = 0.0
+
+class EventRegistrationRead(BaseModel):
+    id: int
+    ticket_code: str
+    opportunity_id: int
+    opportunity_title: str
+    category: str
+    status: str
+    payment_status: str
+    amount_paid: float
+    payment_reference: Optional[str] = None
+    payment_method: Optional[str] = None
+    attendee_name: str
+    attendee_email: str
+    attendee_college: Optional[str] = None
+    attendee_phone: Optional[str] = None
+    event_start_at: Optional[datetime] = None
+    event_venue: Optional[str] = None
+    college: Optional[str] = None
+    created_at: datetime
 
 class FitAssessment(BaseModel):
     opportunity_id: int

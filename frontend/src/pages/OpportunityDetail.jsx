@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
+import { EventCheckoutModal } from '../components/EventCheckoutModal';
 import {
   Calendar,
   Building,
@@ -18,7 +19,9 @@ import {
   Clock,
   ArrowLeft,
   Send,
-  HelpCircle
+  HelpCircle,
+  TicketIcon,
+  CreditCard
 } from 'lucide-react';
 
 export const OpportunityDetail = () => {
@@ -36,10 +39,14 @@ export const OpportunityDetail = () => {
   // Modals
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [myTicket, setMyTicket] = useState(null);
   const [applyNote, setApplyNote] = useState('');
   const [submittingApply, setSubmittingApply] = useState(false);
   const [applyError, setApplyError] = useState('');
   const [registeredSuccess, setRegisteredSuccess] = useState(false);
+
+  const isEventCategory = (cat) => cat && cat !== 'internship';
 
   const fetchOpportunity = async () => {
     setLoading(true);
@@ -49,6 +56,13 @@ export const OpportunityDetail = () => {
 
       if (role === 'student') {
         fetchFit();
+        // Check if already registered for event
+        if (isEventCategory(data.category)) {
+          try {
+            const ticket = await api.getMyTicket(data.id);
+            setMyTicket(ticket);
+          } catch (_) {}
+        }
       }
     } catch (err) {
       console.error('Failed to load opportunity:', err);
@@ -115,14 +129,9 @@ export const OpportunityDetail = () => {
     }
   };
 
-  const handleMarkRegistered = async () => {
-    try {
-      await api.registerForEvent(opp.id);
-      setRegisteredSuccess(true);
-      alert('Marked as registered! This is saved in your participation history.');
-    } catch (err) {
-      alert(`Registration note failed: ${err.message}`);
-    }
+  const handleCheckoutSuccess = (ticket) => {
+    setMyTicket(ticket);
+    setShowCheckoutModal(false);
   };
 
   useEffect(() => {
@@ -434,55 +443,106 @@ export const OpportunityDetail = () => {
             </div>
 
             {/* Application State / Action Buttons */}
-            {opp.application_status ? (
-              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
-                <span className="text-xs font-medium text-gray-600 block mb-1">You have applied:</span>
-                <StatusBadge status={opp.application_status} />
-              </div>
-            ) : isNullDeadline ? (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>Applications are blocked because no deadline was specified by the organizer.</span>
-              </div>
-            ) : isExpired ? (
-              <div className="p-3 bg-gray-100 border border-gray-300 rounded-xl text-xs text-gray-700 text-center font-medium">
-                Applications closed (Deadline passed or opportunity closed).
-              </div>
-            ) : role === 'student' ? (
-              <div className="space-y-2">
-                {opp.category === 'internship' ? (
-                  <button
-                    onClick={() => setShowApplyModal(true)}
-                    className="w-full py-2.5 px-4 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-colors cursor-pointer"
-                  >
-                    Apply for Internship
-                  </button>
-                ) : (
-                  <>
+            {/* ── INTERNSHIP: standard apply flow ── */}
+            {opp.category === 'internship' ? (
+              opp.application_status ? (
+                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
+                  <span className="text-xs font-medium text-gray-600 block mb-1">You have applied:</span>
+                  <StatusBadge status={opp.application_status} />
+                </div>
+              ) : isNullDeadline ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>Applications are blocked because no deadline was specified by the organizer.</span>
+                </div>
+              ) : isExpired ? (
+                <div className="p-3 bg-gray-100 border border-gray-300 rounded-xl text-xs text-gray-700 text-center font-medium">
+                  Applications closed (Deadline passed or opportunity closed).
+                </div>
+              ) : role === 'student' ? (
+                <button
+                  onClick={() => setShowApplyModal(true)}
+                  className="w-full py-2.5 px-4 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  Apply for Internship
+                </button>
+              ) : (
+                <div className="text-xs text-gray-500 text-center">
+                  Sign in with a Student account to apply directly.
+                </div>
+              )
+            ) : (
+              /* ── EVENTS: Hybrid checkout (in-app + external link) ── */
+              <>
+                {/* Already registered — show ticket */}
+                {myTicket ? (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      You're Registered!
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Ticket Code</span>
+                      <span className="font-mono font-black text-gray-900 bg-white border border-emerald-200 px-2.5 py-1 rounded-lg">
+                        {myTicket.ticket_code}
+                      </span>
+                    </div>
+                    {myTicket.payment_status === 'paid_upi' && (
+                      <div className="text-xs text-emerald-700 bg-white border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                        ₹{myTicket.amount_paid} paid · Ref: {myTicket.payment_reference}
+                      </div>
+                    )}
+                  </div>
+                ) : isNullDeadline ? (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <span>Registration blocked — no deadline was specified by the organizer.</span>
+                  </div>
+                ) : isExpired ? (
+                  <div className="p-3 bg-gray-100 border border-gray-300 rounded-xl text-xs text-gray-700 text-center font-medium">
+                    Registrations closed (Event ended or deadline passed).
+                  </div>
+                ) : role === 'student' ? (
+                  <div className="space-y-2">
+                    {/* Registration fee badge if paid event */}
+                    {opp.is_paid && opp.fee_amount > 0 && (
+                      <div className="flex items-center justify-between text-xs bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        <span className="text-amber-800 font-semibold flex items-center gap-1.5">
+                          <CreditCard className="w-3.5 h-3.5" />
+                          Registration Fee
+                        </span>
+                        <span className="font-black text-amber-900">₹{opp.fee_amount}</span>
+                      </div>
+                    )}
+
+                    {/* Primary CTA — opens hybrid checkout modal */}
+                    <button
+                      onClick={() => setShowCheckoutModal(true)}
+                      className="w-full py-2.5 px-4 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <TicketIcon className="w-4 h-4" />
+                      {opp.is_paid ? `Register & Pay ₹${opp.fee_amount}` : 'Register for Event'}
+                    </button>
+
+                    {/* External link quick access */}
                     {opp.registration_link && (
                       <a
                         href={opp.registration_link}
                         target="_blank"
                         rel="noreferrer"
-                        className="w-full py-2.5 px-4 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                        className="w-full py-2 px-4 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-colors flex items-center justify-center gap-1.5"
                       >
-                        Register on External Portal
-                        <ExternalLink className="w-4 h-4" />
+                        Also available: External Google Form
+                        <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}
-                    <button
-                      onClick={handleMarkRegistered}
-                      className="w-full py-2 px-4 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
-                    >
-                      {registeredSuccess ? '✓ Recorded Registration' : "I Registered (Track in Dashboard)"}
-                    </button>
-                  </>
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 text-center">
+                    Sign in with a Student account to register.
+                  </div>
                 )}
-              </div>
-            ) : (
-              <div className="text-xs text-gray-500 text-center">
-                Sign in with a Student account to apply directly.
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -616,6 +676,16 @@ export const OpportunityDetail = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* MODAL: Event Checkout (Hybrid: in-app pay + external link) */}
+      {showCheckoutModal && opp && (
+        <EventCheckoutModal
+          opp={opp}
+          currentUser={user}
+          onClose={() => setShowCheckoutModal(false)}
+          onSuccess={handleCheckoutSuccess}
+        />
       )}
     </div>
   );

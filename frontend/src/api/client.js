@@ -82,9 +82,15 @@ export const api = {
   getOpportunityFit: (id) => request(`/opportunities/${id}/fit`),
   getOpportunitySummary: (id) => request(`/opportunities/${id}/summary`),
 
+  // Event Registration (Hybrid: native in-app + external link tracking)
+  registerForEvent: (oppId, data) => request(`/events/${oppId}/register`, { method: 'POST', body: JSON.stringify(data) }),
+  getMyTicket: (oppId) => request(`/events/${oppId}/my-ticket`),
+  getMyTickets: () => request('/events/my-tickets'),
+  getEventAttendees: (oppId) => request(`/events/${oppId}/attendees`),
+  cancelRegistration: (oppId) => request(`/events/${oppId}/cancel`, { method: 'DELETE' }),
+
   // Applications
   applyToOpportunity: (id, data) => request(`/opportunities/${id}/apply`, { method: 'POST', body: JSON.stringify(data) }),
-  registerForEvent: (id) => request(`/opportunities/${id}/register`, { method: 'POST' }),
   getMyApplications: () => request('/applications/mine'),
   updateApplicationStatus: (id, status) => request(`/applications/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 

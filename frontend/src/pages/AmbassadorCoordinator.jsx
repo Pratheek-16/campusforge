@@ -17,7 +17,9 @@ import {
   AlertCircle,
   X,
   Tag,
-  Sparkles
+  Sparkles,
+  Users,
+  IndianRupee
 } from 'lucide-react';
 
 export const AmbassadorCoordinator = () => {
@@ -31,6 +33,9 @@ export const AmbassadorCoordinator = () => {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [skillInput, setSkillInput] = useState('');
+
+  // Attendee Modal State
+  const [attendeeModal, setAttendeeModal] = useState({ open: false, oppTitle: '', attendees: [], loading: false });
   
   const [form, setForm] = useState({
     title: '',
@@ -40,7 +45,6 @@ export const AmbassadorCoordinator = () => {
     description: '',
     venue: '',
     online_link: '',
-    registration_link: '',
     start_at: '',
     end_at: '',
     deadline_at: '',
@@ -49,7 +53,12 @@ export const AmbassadorCoordinator = () => {
     organizer_contact: user?.email || '',
     allowed_years: [1, 2, 3, 4],
     allowed_depts: ['CSE', 'IT', 'ECE', 'MECH', 'CIVIL'],
-    strict_eligibility: false
+    strict_eligibility: false,
+    is_paid: false,
+    fee_amount: 0,
+    host_upi_id: '',
+    registration_type: 'both',
+    registration_link: '',
   });
 
   const isAmbassador = role === 'ambassador';
@@ -72,7 +81,11 @@ export const AmbassadorCoordinator = () => {
       organizer_contact: user?.email || '',
       allowed_years: [1, 2, 3, 4],
       allowed_depts: ['CSE', 'IT', 'ECE', 'MECH', 'CIVIL'],
-      strict_eligibility: false
+      strict_eligibility: false,
+      is_paid: false,
+      fee_amount: 0,
+      host_upi_id: '',
+      registration_type: 'both',
     });
     setSkillInput('');
     setErrorMessage('');
@@ -144,6 +157,10 @@ export const AmbassadorCoordinator = () => {
         allowed_years: form.allowed_years,
         allowed_depts: form.allowed_depts,
         strict_eligibility: form.strict_eligibility,
+        is_paid: form.is_paid,
+        fee_amount: form.is_paid ? (parseFloat(form.fee_amount) || 0) : 0,
+        host_upi_id: form.is_paid && form.host_upi_id.trim() ? form.host_upi_id.trim() : undefined,
+        registration_type: form.registration_type || 'both',
         resources: []
       };
 
@@ -171,6 +188,16 @@ export const AmbassadorCoordinator = () => {
       setTimeout(() => setSuccessMessage(''), 4000);
     } catch (err) {
       alert(`Delete failed: ${err.message}`);
+    }
+  };
+
+  const openAttendees = async (opp) => {
+    setAttendeeModal({ open: true, oppTitle: opp.title, attendees: [], loading: true });
+    try {
+      const data = await api.getEventAttendees(opp.id);
+      setAttendeeModal({ open: true, oppTitle: opp.title, attendees: data, loading: false });
+    } catch (err) {
+      setAttendeeModal({ open: true, oppTitle: opp.title, attendees: [], loading: false });
     }
   };
 
@@ -336,6 +363,13 @@ export const AmbassadorCoordinator = () => {
                     </td>
                     <td className="p-4 text-right">
                       <div className="inline-flex items-center gap-2">
+                        <button
+                          onClick={() => openAttendees(opp)}
+                          className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                          title="View Attendees"
+                        >
+                          <Users className="w-4 h-4" />
+                        </button>
                         <Link
                           to={`/opportunities/${opp.id}`}
                           className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -616,6 +650,87 @@ export const AmbassadorCoordinator = () => {
                 </div>
               </div>
 
+              {/* Payment & Registration Settings */}
+              <div className="space-y-4 pt-2 border-t border-gray-100">
+                <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide">Registration Settings</h3>
+
+                {/* Is Paid Toggle */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700">Paid Event</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Collect registration fee via UPI</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, is_paid: !form.is_paid })}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_paid ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${form.is_paid ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+
+                {/* Paid-only fields */}
+                {form.is_paid && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Registration Fee (₹) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="e.g. 150"
+                        value={form.fee_amount}
+                        onChange={(e) => setForm({ ...form, fee_amount: e.target.value })}
+                        className="w-full px-3.5 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Host UPI ID <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. yourname@upi"
+                        value={form.host_upi_id}
+                        onChange={(e) => setForm({ ...form, host_upi_id: e.target.value })}
+                        className="w-full px-3.5 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Registration Type */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Registration Mode</label>
+                  <select
+                    value={form.registration_type}
+                    onChange={(e) => setForm({ ...form, registration_type: e.target.value })}
+                    className="w-full px-3.5 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="both">Both — In-App + Google Form</option>
+                    <option value="native">In-App Registration Only</option>
+                    <option value="external_link">Google Form Only</option>
+                  </select>
+                </div>
+
+                {/* Google Form URL */}
+                {(form.registration_type === 'both' || form.registration_type === 'external_link') && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Google Form URL {form.registration_type === 'external_link' && <span className="text-rose-500">*</span>}
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="https://forms.gle/..."
+                      value={form.registration_link}
+                      onChange={(e) => setForm({ ...form, registration_link: e.target.value })}
+                      className="w-full px-3.5 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Submit / Cancel Buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
@@ -634,6 +749,73 @@ export const AmbassadorCoordinator = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Attendee List Modal */}
+      {attendeeModal.open && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl relative animate-fadeIn max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Attendees</h2>
+                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{attendeeModal.oppTitle}</p>
+              </div>
+              <button
+                onClick={() => setAttendeeModal({ open: false, oppTitle: '', attendees: [], loading: false })}
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {attendeeModal.loading ? (
+              <div className="py-8 text-center text-gray-400 text-sm">Loading attendees...</div>
+            ) : attendeeModal.attendees.length === 0 ? (
+              <div className="py-8 text-center">
+                <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No registrations yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 mb-3">{attendeeModal.attendees.length} registered</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-400 uppercase text-[10px] tracking-wider">
+                        <th className="p-3 text-left">Name</th>
+                        <th className="p-3 text-left">Email</th>
+                        <th className="p-3 text-left">College</th>
+                        <th className="p-3 text-left">Payment</th>
+                        <th className="p-3 text-left">Ticket</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {attendeeModal.attendees.map((a) => (
+                        <tr key={a.id} className="hover:bg-gray-50">
+                          <td className="p-3 font-medium text-gray-800">{a.attendee_name}</td>
+                          <td className="p-3 text-gray-600">{a.attendee_email}</td>
+                          <td className="p-3 text-gray-500">{a.attendee_college || '—'}</td>
+                          <td className="p-3">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              a.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700' :
+                              a.payment_status === 'free' ? 'bg-blue-50 text-blue-700' :
+                              a.payment_status === 'external_form' ? 'bg-purple-50 text-purple-700' :
+                              'bg-amber-50 text-amber-700'
+                            }`}>
+                              {a.payment_status === 'paid' && <IndianRupee className="w-3 h-3" />}
+                              {a.payment_status?.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="p-3 font-mono text-[10px] text-gray-500">{a.ticket_code?.slice(0, 12)}…</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

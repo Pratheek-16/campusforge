@@ -15,7 +15,8 @@ from app.routers import (
     tasks,
     dashboard,
     staff,
-    p1
+    p1,
+    registrations
 )
 
 @asynccontextmanager
@@ -51,6 +52,7 @@ app.include_router(tasks.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(staff.router, prefix="/api")
 app.include_router(p1.router, prefix="/api")
+app.include_router(registrations.router, prefix="/api")
 
 @app.get("/health")
 def health_check():

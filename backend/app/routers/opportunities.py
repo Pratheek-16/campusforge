@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session, select, or_
 
 from app.database import get_session
-from app.models import User, Opportunity, SavedOpportunity, Application, StudentProfile, Participation
-from app.schemas import OpportunityCreate, OpportunityUpdate, OpportunityRead, FitAssessment, OpportunitySummary
+from app.models import User, Opportunity, SavedOpportunity, Application, StudentProfile, Participation, EventRegistration
+from app.schemas import OpportunityCreate, OpportunityUpdate, OpportunityRead, FitAssessment, OpportunitySummary, EventRegistrationCreate, EventRegistrationRead
 from app.dependencies import get_current_user, get_optional_user, require_role
 from app.services.status_engine import compute_opportunity_status, normalize_utc
 from app.services.fit_engine import calculate_opportunity_fit
@@ -70,11 +70,16 @@ def format_opportunity_response(
         section=opp.section,
         posted_by=opp.posted_by,
         is_closed=opp.is_closed,
+        is_paid=getattr(opp, "is_paid", False),
+        fee_amount=getattr(opp, "fee_amount", 0.0),
+        host_upi_id=getattr(opp, "host_upi_id", None),
+        registration_type=getattr(opp, "registration_type", "both"),
         created_at=opp.created_at,
         updated_at=opp.updated_at,
         computed_status=comp_status,
         is_saved=is_saved,
-        application_status=app_status
+        application_status=app_status,
+        event_registration=None
     )
 
 @router.get("", response_model=List[OpportunityRead])
@@ -210,7 +215,11 @@ def create_opportunity(
         college=college_scope,
         section=section_scope,
         posted_by=current_user.id,
-        is_closed=False
+        is_closed=False,
+        is_paid=data.is_paid,
+        fee_amount=data.fee_amount if data.is_paid else 0.0,
+        host_upi_id=data.host_upi_id if data.is_paid else None,
+        registration_type=data.registration_type or "both",
     )
     session.add(opp)
     session.commit()

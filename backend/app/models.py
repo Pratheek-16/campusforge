@@ -63,6 +63,10 @@ class Opportunity(SQLModel, table=True):
     section: Optional[str] = None
     posted_by: int = Field(foreign_key="users.id")
     is_closed: bool = Field(default=False)
+    is_paid: bool = Field(default=False)
+    fee_amount: float = Field(default=0.0)
+    host_upi_id: Optional[str] = None
+    registration_type: str = Field(default="both")  # native, external_link, both
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -98,6 +102,26 @@ class Participation(SQLModel, table=True):
     opportunity_id: int = Field(foreign_key="opportunities.id", index=True)
     status: str = Field(default="registered")  # registered, attended
     reflection_text: Optional[str] = ""
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class EventRegistration(SQLModel, table=True):
+    __tablename__ = "event_registrations"
+    __table_args__ = (UniqueConstraint("user_id", "opportunity_id", name="uq_user_event_registration"),)
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    opportunity_id: int = Field(foreign_key="opportunities.id", index=True)
+    ticket_code: str = Field(index=True, unique=True)
+    status: str = Field(default="confirmed")  # confirmed, cancelled
+    payment_status: str = Field(default="free")  # free, paid_upi, paid_demo, external_form
+    amount_paid: float = Field(default=0.0)
+    payment_reference: Optional[str] = None  # UTR or Demo Txn ID
+    payment_method: Optional[str] = None    # free, upi_utr, demo_instant, google_form
+    attendee_name: str
+    attendee_email: str
+    attendee_college: Optional[str] = None
+    attendee_phone: Optional[str] = None
     created_at: datetime = Field(default_factory=utc_now)
 
 

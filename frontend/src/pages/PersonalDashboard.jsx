@@ -15,19 +15,28 @@ import {
   ChevronRight,
   ExternalLink,
   Sparkles,
-  Inbox
+  Inbox,
+  Ticket,
+  MapPin,
+  IndianRupee,
+  CheckCircle2
 } from 'lucide-react';
 
 export const PersonalDashboard = () => {
   const { user } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [myTickets, setMyTickets] = useState([]);
 
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const data = await api.getDashboard();
+      const [data, tickets] = await Promise.all([
+        api.getDashboard(),
+        api.getMyTickets().catch(() => []),
+      ]);
       setDashboard(data);
+      setMyTickets(tickets || []);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
     } finally {
@@ -310,6 +319,64 @@ export const PersonalDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* MY EVENT TICKETS */}
+      {myTickets.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+              <Ticket className="w-4 h-4 text-indigo-500" />
+              My Event Tickets ({myTickets.length})
+            </h2>
+          </div>
+          <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 space-y-2"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Link
+                    to={`/opportunities/${ticket.opportunity_id}`}
+                    className="font-bold text-sm text-gray-900 hover:text-indigo-600 leading-snug"
+                  >
+                    {ticket.opportunity_title}
+                  </Link>
+                  <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                    ticket.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' :
+                    ticket.status === 'cancelled' ? 'bg-rose-100 text-rose-700' :
+                    'bg-amber-100 text-amber-700'
+                  }`}>
+                    <CheckCircle2 className="w-3 h-3" />
+                    {ticket.status}
+                  </span>
+                </div>
+                {ticket.event_venue && (
+                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                    <MapPin className="w-3 h-3" />
+                    {ticket.event_venue}
+                  </div>
+                )}
+                {ticket.event_start_at && (
+                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(ticket.event_start_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                )}
+                <div className="flex items-center justify-between mt-1 pt-2 border-t border-indigo-100">
+                  <div className="flex items-center gap-1 text-[11px] text-indigo-600">
+                    {ticket.payment_status === 'paid' && <IndianRupee className="w-3 h-3" />}
+                    <span className="capitalize">{ticket.payment_status?.replace('_', ' ')}</span>
+                  </div>
+                  <span className="font-mono text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">
+                    {ticket.ticket_code?.slice(0, 14)}…
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
