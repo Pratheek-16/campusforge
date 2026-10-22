@@ -1,5 +1,5 @@
 import re
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Any, Optional
 
 # Standard skill alias lookup
 CANONICAL_ALIASES: Dict[str, str] = {
