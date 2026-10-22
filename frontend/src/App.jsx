@@ -101,7 +101,7 @@ export function AppContent() {
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>CampusForge · BuildAP@theGnaN Mentorship Final Challenge · MVP</span>
+          <span>CampusForge</span>
           <span className="text-[11px] text-slate-400">Deterministic Rule-based Matching & Real-time Edge Enforcement</span>
         </div>
       </footer>

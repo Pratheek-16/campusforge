@@ -6,7 +6,7 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8.svg)](https://tailwindcss.com)
 [![Test Suite](https://img.shields.io/badge/Tests-14%2F14%20Passing-brightgreen.svg)]()
 
-> **BuildAP@theGnaN Mentorship Final Challenge · MVP**  
+> **CampusForge · MVP**  
 > *"Build the most meaningful working solution, not the most features."*
 
 ---

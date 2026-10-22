@@ -284,7 +284,7 @@ def seed_database():
                 deadline_at=now + timedelta(days=5),
                 venue="Main Auditorium, GnaN Campus",
                 organizer_name="GnaN Student Council",
-                registration_link="https://hackathon.thegnan.edu",
+                registration_link="https://hackathon.campusforge.edu",
                 college="GnaN Institute of Technology",
                 posted_by=ambassador.id
             ),
