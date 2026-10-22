@@ -161,12 +161,22 @@ async def analyze_resume(
     analysis = analyze_resume_text(text, settings.GEMINI_API_KEY)
 
     return ResumeAnalysisResponse(
-        extracted_text=text[:1000],  # sample preview
+        extracted_text=text[:1500],
+        filename=saved_filename,
+        suggested_name=analysis.get("suggested_name"),
+        suggested_email=analysis.get("suggested_email"),
+        suggested_phone=analysis.get("suggested_phone"),
+        suggested_college=analysis.get("suggested_college"),
+        suggested_department=analysis.get("suggested_department"),
+        suggested_year=analysis.get("suggested_year"),
+        suggested_career_goals=analysis.get("suggested_career_goals"),
         suggested_skills=analysis.get("suggested_skills", []),
+        suggested_nontech_skills=analysis.get("suggested_nontech_skills", []),
         suggested_projects=analysis.get("suggested_projects", []),
         suggested_experience=analysis.get("suggested_experience", []),
         suggested_education=analysis.get("suggested_education", {}),
-        filename=saved_filename
+        suggested_certifications=analysis.get("suggested_certifications", []),
+        suggested_links=analysis.get("suggested_links", {}),
     )
 
 @router.post("/resume/confirm", response_model=StudentProfileRead)

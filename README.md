@@ -80,8 +80,8 @@ source venv/bin/activate
 # Install backend dependencies
 pip install -r backend/requirements.txt
 
-# Apply database migrations (defaults to local SQLite)
-python -m alembic -c backend/alembic.ini upgrade head
+# Apply database migrations using values from .env
+python -m dotenv run -- python -m alembic -c backend/alembic.ini upgrade head
 ```
 
 ### Step 2: Seed Demo Database
@@ -100,8 +100,8 @@ cd ..
 
 ### Step 4: Launch Application
 ```bash
-# Launches full-stack application on http://localhost:8000
-python -m uvicorn app.main:app --app-dir backend --reload --port 8000
+# Launches full-stack application on http://localhost:8000 using values from .env
+python -m dotenv run -- python -m uvicorn app.main:app --app-dir backend --reload --port 8000
 ```
 Open [http://localhost:8000](http://localhost:8000) in your browser.
 

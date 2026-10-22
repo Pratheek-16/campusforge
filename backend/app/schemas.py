@@ -71,11 +71,24 @@ class StudentProfileUpdate(BaseModel):
 
 class ResumeAnalysisResponse(BaseModel):
     extracted_text: str
+    filename: str
+    # Personal info
+    suggested_name: Optional[str] = None
+    suggested_email: Optional[str] = None
+    suggested_phone: Optional[str] = None
+    suggested_college: Optional[str] = None
+    suggested_department: Optional[str] = None
+    suggested_year: Optional[int] = None
+    suggested_career_goals: Optional[str] = None
+    # Skills
     suggested_skills: List[str] = []
+    suggested_nontech_skills: List[str] = []
+    # Structured data
     suggested_projects: List[Dict[str, Any]] = []
     suggested_experience: List[Dict[str, Any]] = []
     suggested_education: Dict[str, Any] = {}
-    filename: str
+    suggested_certifications: List[str] = []
+    suggested_links: Dict[str, str] = {}
 
 # --- Opportunity Schemas ---
 class OpportunityCreate(BaseModel):

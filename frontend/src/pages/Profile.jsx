@@ -153,22 +153,38 @@ export const Profile = () => {
     if (!resumeReviewData) return;
     setSaving(true);
     try {
-      const updatedSkills = Array.from(new Set([...formData.skills, ...resumeReviewData.suggested_skills]));
-      const updatedProjects = [...formData.projects, ...resumeReviewData.suggested_projects];
-      const updatedExperience = [...formData.experience, ...resumeReviewData.suggested_experience];
+      const r = resumeReviewData;
+
+      // Merge skills (tech + nontech), projects, experience, certifications
+      const updatedSkills = Array.from(new Set([...formData.skills, ...(r.suggested_skills || [])]));
+      const updatedNontechSkills = Array.from(new Set([...formData.nontech_skills || [], ...(r.suggested_nontech_skills || [])]));
+      const updatedProjects = [...formData.projects, ...(r.suggested_projects || [])];
+      const updatedExperience = [...formData.experience, ...(r.suggested_experience || [])];
+      const updatedCerts = Array.from(new Set([...formData.certifications || [], ...(r.suggested_certifications || [])]));
 
       const mergedData = {
         ...formData,
+        // Auto-fill personal info only if currently empty
+        name: formData.name || r.suggested_name || formData.name,
+        college: formData.college || r.suggested_college || formData.college,
+        department: formData.department || r.suggested_department || formData.department,
+        year: formData.year || r.suggested_year || formData.year,
+        career_goals: formData.career_goals || r.suggested_career_goals || formData.career_goals,
+        // Skills
         skills: updatedSkills,
+        nontech_skills: updatedNontechSkills,
+        // Structured data
         projects: updatedProjects,
         experience: updatedExperience,
-        academic: { ...formData.academic, ...resumeReviewData.suggested_education }
+        certifications: updatedCerts,
+        // Education (CGPA, graduation year, degree)
+        academic: { ...formData.academic, ...r.suggested_education },
       };
 
-      await api.confirmResumeProfile(mergedData, resumeReviewData.filename);
+      await api.confirmResumeProfile(mergedData, r.filename);
       setFormData(mergedData);
       setResumeReviewData(null);
-      setFeedback({ type: 'success', message: 'Confirmed and saved resume skills to your active profile!' });
+      setFeedback({ type: 'success', message: `Profile updated from resume! ${updatedSkills.length} skills, ${updatedProjects.length} projects extracted.` });
     } catch (err) {
       setFeedback({ type: 'error', message: `Confirmation failed: ${err.message}` });
     } finally {
@@ -260,57 +276,169 @@ export const Profile = () => {
           )}
         </div>
 
-        {/* Review-Before-Save Modal / Card */}
+        {/* Review-Before-Save Card */}
         {resumeReviewData && (
-          <div className="mt-6 p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                <AlertCircle className="w-4 h-4 text-amber-600" />
-                Review Extracted Resume Data (Not saved yet)
+          <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50/40 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3 bg-indigo-600 text-white">
+              <div className="flex items-center gap-2 font-bold text-sm">
+                <CheckCircle className="w-4 h-4" />
+                Resume Parsed — Review &amp; Confirm
               </div>
-              <button
-                onClick={() => setResumeReviewData(null)}
-                className="text-xs text-gray-400 hover:text-gray-600"
-              >
-                Cancel Review
+              <button onClick={() => setResumeReviewData(null)} className="text-indigo-200 hover:text-white text-xs">
+                Dismiss
               </button>
             </div>
 
-            <div>
-              <span className="text-xs font-semibold text-gray-700 block mb-1">
-                Extracted Skills ({resumeReviewData.suggested_skills.length}):
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {resumeReviewData.suggested_skills.map((s, i) => (
-                  <span key={i} className="px-2 py-0.5 rounded text-xs bg-white text-gray-800 border border-amber-200">
-                    {s}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <div className="p-5 space-y-5">
 
-            {resumeReviewData.suggested_projects.length > 0 && (
+              {/* Personal Info Row */}
               <div>
-                <span className="text-xs font-semibold text-gray-700 block mb-1">Extracted Projects:</span>
-                <div className="space-y-1">
-                  {resumeReviewData.suggested_projects.map((p, i) => (
-                    <div key={i} className="text-xs bg-white p-2 rounded border border-amber-200">
-                      <span className="font-bold">{p.title}</span> — {p.description}
+                <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">Personal Info Extracted</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                  {[
+                    { label: 'Name', val: resumeReviewData.suggested_name },
+                    { label: 'Email', val: resumeReviewData.suggested_email },
+                    { label: 'Phone', val: resumeReviewData.suggested_phone },
+                    { label: 'College', val: resumeReviewData.suggested_college },
+                    { label: 'Department', val: resumeReviewData.suggested_department },
+                    { label: 'Year', val: resumeReviewData.suggested_year ? `${resumeReviewData.suggested_year}${['','st','nd','rd','th'][resumeReviewData.suggested_year]} Year` : null },
+                    { label: 'Graduation', val: resumeReviewData.suggested_education?.graduation_year },
+                    { label: 'CGPA', val: resumeReviewData.suggested_education?.gpa },
+                  ].filter(f => f.val).map((f, i) => (
+                    <div key={i} className="bg-white rounded-lg border border-indigo-100 px-3 py-2">
+                      <div className="text-[10px] text-gray-400 font-semibold uppercase">{f.label}</div>
+                      <div className="font-semibold text-gray-800 truncate mt-0.5">{f.val}</div>
                     </div>
                   ))}
                 </div>
+                {!resumeReviewData.suggested_name && !resumeReviewData.suggested_college && (
+                  <p className="text-[11px] text-amber-600 mt-1">⚠ Couldn't extract personal info — check the form below and fill manually.</p>
+                )}
               </div>
-            )}
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={handleConfirmExtractedData}
-                disabled={saving}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                <CheckCircle className="w-3.5 h-3.5" />
-                {saving ? 'Saving...' : 'Confirm & Merge to Profile'}
-              </button>
+              {/* Tech Skills */}
+              {resumeReviewData.suggested_skills?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">
+                    Technical Skills ({resumeReviewData.suggested_skills.length} found)
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {resumeReviewData.suggested_skills.map((s, i) => (
+                      <span key={i} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Non-tech Skills */}
+              {resumeReviewData.suggested_nontech_skills?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">
+                    Soft Skills ({resumeReviewData.suggested_nontech_skills.length} found)
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {resumeReviewData.suggested_nontech_skills.map((s, i) => (
+                      <span key={i} className="px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Projects */}
+              {resumeReviewData.suggested_projects?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">
+                    Projects ({resumeReviewData.suggested_projects.length} found)
+                  </p>
+                  <div className="space-y-2">
+                    {resumeReviewData.suggested_projects.map((p, i) => (
+                      <div key={i} className="bg-white rounded-xl border border-indigo-100 p-3 text-xs">
+                        <div className="font-bold text-gray-900">{p.title}</div>
+                        {p.description && <div className="text-gray-500 mt-0.5 line-clamp-2">{p.description}</div>}
+                        {p.technologies?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {p.technologies.map((t, j) => (
+                              <span key={j} className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px]">{t}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Experience */}
+              {resumeReviewData.suggested_experience?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">
+                    Experience ({resumeReviewData.suggested_experience.length} found)
+                  </p>
+                  <div className="space-y-2">
+                    {resumeReviewData.suggested_experience.map((e, i) => (
+                      <div key={i} className="bg-white rounded-xl border border-indigo-100 p-3 text-xs">
+                        <div className="font-bold text-gray-900">{e.title}</div>
+                        {e.company && <div className="text-gray-600">{e.company} {e.duration ? `· ${e.duration}` : ''}</div>}
+                        {e.description && <div className="text-gray-500 mt-0.5 line-clamp-2">{e.description}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Certifications */}
+              {resumeReviewData.suggested_certifications?.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">Certifications</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {resumeReviewData.suggested_certifications.map((c, i) => (
+                      <span key={i} className="px-2.5 py-1 rounded-full text-xs bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Links */}
+              {(resumeReviewData.suggested_links?.linkedin || resumeReviewData.suggested_links?.github) && (
+                <div>
+                  <p className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest mb-2">Links Found</p>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {resumeReviewData.suggested_links.linkedin && (
+                      <a href={resumeReviewData.suggested_links.linkedin} target="_blank" rel="noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">
+                        LinkedIn ↗
+                      </a>
+                    )}
+                    {resumeReviewData.suggested_links.github && (
+                      <a href={resumeReviewData.suggested_links.github} target="_blank" rel="noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200">
+                        GitHub ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Confirm Button */}
+              <div className="flex items-center justify-between pt-2 border-t border-indigo-100">
+                <p className="text-[11px] text-gray-500">All data will be merged with your existing profile. You can edit anything after.</p>
+                <button
+                  onClick={handleConfirmExtractedData}
+                  disabled={saving}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  {saving ? 'Saving...' : 'Confirm & Fill Profile'}
+                </button>
+              </div>
+
             </div>
           </div>
         )}
