@@ -39,6 +39,11 @@ async function request(endpoint, options = {}) {
     return null;
   }
 
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error('Backend returned non-JSON response. Please verify that VITE_API_URL is configured to point to your Render backend.');
+  }
+
   return await response.json();
 }
 
