@@ -32,7 +32,7 @@ Serving four distinct user roles:
 | Layer | Technology | Rationale |
 |---|---|---|
 | **Backend** | Python 3.11+ / FastAPI / SQLModel (SQLAlchemy) | High throughput, type safety, automatic OpenAPI documentation |
-| **Database** | SQLite (with Postgres compatibility) | Zero-friction setup, local file persistence, ACID transactions |
+| **Database** | SQLite locally / Supabase PostgreSQL in production | Easy local setup with production PostgreSQL migrations |
 | **Authentication** | JWT (`python-jose`) + Native `bcrypt` | Secure stateless auth with server-side role enforcement |
 | **Frontend** | React 18 + Vite + Tailwind CSS + React Router | Responsive mobile-first UI, instantaneous client-side navigation |
 | **Matching Engine** | Pure Rule-Based Python | Deterministic 0–100 fit scoring, verified candidate matching, unit tested |
@@ -79,6 +79,9 @@ source venv/bin/activate
 
 # Install backend dependencies
 pip install -r backend/requirements.txt
+
+# Apply database migrations (defaults to local SQLite)
+python -m alembic -c backend/alembic.ini upgrade head
 ```
 
 ### Step 2: Seed Demo Database
@@ -172,6 +175,11 @@ In adherence to the challenge guidelines, Project Nexus prioritizes a working, c
 
 Project Nexus is designed to deploy as a unified service on Render via `render.yaml`:
 
+Set `DATABASE_URL` in the Render environment to the Supabase PostgreSQL connection URI.
+Keep the URI out of source control and URL-encode reserved characters in its password.
+The Render build runs Alembic migrations before seeding demo data; local schema changes
+should be added as new revisions under `backend/migrations/versions`.
+
 ```yaml
 services:
   - type: web
@@ -181,7 +189,7 @@ services:
     startCommand: "uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT"
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///./nexus.db
+        sync: false
       - key: SECRET_KEY
         generateValue: true
 ```

@@ -4,7 +4,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-from app.database import init_db
 from app.routers import (
     auth,
     opportunities,
@@ -21,8 +20,6 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables on startup
-    init_db()
     yield
 
 app = FastAPI(
@@ -55,6 +52,7 @@ app.include_router(p1.router, prefix="/api")
 app.include_router(registrations.router, prefix="/api")
 
 @app.get("/health")
+@app.get("/api/health")
 def health_check():
     return {"status": "ok", "app": "CampusForge"}
 
@@ -79,4 +77,3 @@ async def serve_spa(full_path: str):
         if os.path.exists(index_file):
             return FileResponse(index_file)
     return {"message": "CampusForge API is running. Build frontend with 'npm run build' to view UI."}
-
