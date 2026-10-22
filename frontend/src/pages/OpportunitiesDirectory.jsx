@@ -47,7 +47,7 @@ export const OpportunitiesDirectory = () => {
         status_filter: statusFilter,
         skill: skillFilter || undefined,
       });
-      setOpportunities(data);
+      setOpportunities(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to load opportunities:', err);
     } finally {
